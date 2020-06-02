@@ -1,0 +1,94 @@
+<html>
+
+<head>
+  <title>Express</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    h1{
+      text-align: center;
+    }
+    #amount{
+      height:30px;
+      padding:3 6px;
+      border-radius: 5px;
+      font-size:15px;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  
+
+  <div style="margin-left:33%;width:34%;margin-top: 100px;border: 1px solid grey;border-radius:5px; padding:30px;">
+    <h1>Stripe</h1>
+    <p>Checkout Page</p>
+    <form id="payment-form">
+      <input type="number" id="amount" placeholder="Enter Amount to pay" min="0" step=".01" required>
+      <br>
+      <br>
+      <div id="card-element">
+        <!-- Elements will create input elements here -->
+      </div>
+    
+      <!-- We'll put the error messages in this element -->
+      <div id="card-errors" role="alert"></div>
+    
+      <button id="submit">Pay</button>
+    </form>
+  </div>
+
+  <script>
+
+    var stripe = Stripe('pk_test_OiXzyAVx9CZWN42aZ1cNn5fd00eukDwAvU');
+    var elements = stripe.elements();
+    var style = {
+      base: {
+        color: "#32325d",
+      }
+    };
+
+    var card = elements.create("card", { style: style });
+    card.mount("#card-element");
+
+    card.on('change', ({error}) => {
+      const displayError = document.getElementById('card-errors');
+      if (error) {
+        displayError.textContent = error.message;
+      } else {
+        displayError.textContent = '';
+      }
+    });
+
+    var form = document.getElementById('payment-form');
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const amount = document.querySelector('#amount');
+      const response = await fetch('/secret/' + parseFloat(amount.value));
+      const {client_secret: clientSecret} = await response.json();
+      console.log({clientSecret});
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: card,
+          billing_details: {
+            name: 'Test User'
+          }
+        }
+      })
+        
+      if (result.error) {
+          // Show error to your customer (e.g., insufficient funds)
+          console.log(result.error.message);
+      } else {
+        // The payment has been processed!
+        if (result.paymentIntent.status === 'succeeded') {
+          alert('Payment Success')
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
